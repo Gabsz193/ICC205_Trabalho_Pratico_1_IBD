@@ -51,18 +51,26 @@ class AmazonParser:
 
         return self.file_lines[start_line:current_line], current_line
 
+    @staticmethod
+    def parse_data(lines: list[str]):
+        id_pattern = re.compile(r'^Id:\s*(\d+)$')
+        asin_pattern = re.compile(r'^ASIN:\s*(\w+)$')
+
+        if match := id_pattern.match(lines[0]):
+            product_id = match.group(1)
+            print(f"Product ID: {product_id}")
+
+        if match := asin_pattern.match(lines[0]):
+            product_asin = match.group(1)
+            print(f"Product ID: {product_id}")
+
+        print(lines)
+
 
 parser = AmazonParser("data/amazon-meta.txt")
 
-actual_count = 0
 cur_line = 3
 
-while True:
-    try:
-        cur_line = parser.get_data(cur_line)[1] + 1
-        print(f"Linha {actual_count} processada.")
-        actual_count += 1
-    except Exception:
-        break
+lines = parser.get_data(cur_line)[0]
 
-print(f"Quantidade total eh {parser.get_count()} mas documento tem realmente {actual_count}")
+parser.parse_data(lines)
