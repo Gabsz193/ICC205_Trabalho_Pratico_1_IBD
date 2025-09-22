@@ -95,26 +95,62 @@ class AmazonParser:
             if match := group_pattern.match(line):
                 product_group = match.group(1)
                 product.group = Group(name=product_group)
-                print(f"Product Group: {product.group}")
                 continue
 
             if match := sales_rank_pattern.match(line):
                 product_sales_rank = match.group(1)
                 product.salesrank = product_sales_rank
-                print(f"Product Sales Rank: {product_sales_rank}")
                 continue
 
             if match := category_pattern.match(line):
                 product_category = match.group(1)
                 print(f"Product Category: {product_category}")
+                # Um for aqui para cada categoria, salvar dentro de produto.categories
+
+                # Ponto importante a considerar:
+                # Como pode ver, em product.categories, tem uma lista de categorias
+                # em que cada categoria tem um categoria.super_category, que por sua
+                # vez é uma categoria.
+
+                # Acho q vai ficar melhor, ao invés de usar uma matriz, fazer uma lista
+                # de árvores de categoria.
+
+                n = int(product_category)
+
+                while n > 0:
+                    category_line = lines[current_line]
+                    current_line += 1
+
+                    categories = [x for x in category_line.strip().split('|') if x]
+                    category_inner_pattern = re.compile(r'^(.*)\[(.*)]$')
+
+                    print("-"*30)
+                    print("Linha completa:", category_line.strip())
+                    list_categories = []
+
+                    for category in categories:
+                        category_name = category_inner_pattern.match(category).group(1)
+                        category_id = category_inner_pattern.match(category).group(2)
+                        list_categories.append((category_id, category_name))
+
+                    print(list_categories) # Pega essa lista e faz uma árvore
+                    print("-"*30)
+
+                    n -= 1
                 continue
 
             if match := review_pattern.match(line):
+
+                # Aqui deve ser ok de fazer, quase a mesma lógica do de cima
+
                 product_review = match.group(1)
                 print(f"Product Review: {product_review}")
                 continue
 
             if match := similar_pattern.match(line):
+
+                # Aqui é só fazer um split e colocar dentro de produto, tbm acho q é simples
+
                 product_similar = match.group(1)
                 print(f"Product Similar: {product_similar}")
                 continue
