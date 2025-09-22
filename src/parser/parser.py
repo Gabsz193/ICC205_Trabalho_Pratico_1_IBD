@@ -71,7 +71,12 @@ class AmazonParser:
             asin="",
         )
 
-        for line in lines:
+        current_line = 0
+
+        while current_line < len(lines):
+            line = lines[current_line]
+            current_line += 1
+
             if match := id_pattern.match(line):
                 product_id = match.group(1)
                 product.id_product = product_id
