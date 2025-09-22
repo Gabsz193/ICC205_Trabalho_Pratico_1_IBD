@@ -105,6 +105,9 @@ class AmazonParser:
             if match := category_pattern.match(line):
                 product_category = match.group(1)
                 print(f"Product Category: {product_category}")
+                # Precisar de ajuda com regex, eu uso esse site: https://regexr.com/
+                # Mas talvez o jeito mais fácil seja fazer com IA.
+
                 # Um for aqui para cada categoria, salvar dentro de produto.categories
 
                 # Ponto importante a considerar:
