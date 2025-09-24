@@ -13,15 +13,23 @@ _pool = SimpleConnectionPool(
 )
 
 class DatabaseConnection:
+    def __init__(self):
+        self._conn_stack: list[pg.extensions.connection] = []
+
     def __enter__(self) -> pg.extensions.connection:
-        self.conn = _pool.getconn()
-        return self.conn
+        conn = _pool.getconn()
+        self._conn_stack.append(conn)
+        return conn
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.conn:
-            if exc_type is None:
-                self.conn.commit()
-            else:
-                self.conn.rollback()
-
-            _pool.putconn(self.conn)
+        if not self._conn_stack:
+            return
+        conn = self._conn_stack.pop()
+        if conn:
+            try:
+                if exc_type is None:
+                    conn.commit()
+                else:
+                    conn.rollback()
+            finally:
+                _pool.putconn(conn)
