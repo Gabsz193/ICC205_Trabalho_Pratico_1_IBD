@@ -48,7 +48,7 @@ parser.add_argument('--db-pass',
 parser.add_argument('--input',
                     type=str,
                     help='Arquivo de entrada',
-                    required=True
+                    nargs='?'
                     )
 
 parser.add_argument('--product-asin',
@@ -60,7 +60,7 @@ parser.add_argument('--product-asin',
 parser.add_argument('--output',
                     type=str,
                     help='Arquivo de saída',
-                    required = True
+                    nargs='?'
                     )
 
 results = parser.parse_args()
