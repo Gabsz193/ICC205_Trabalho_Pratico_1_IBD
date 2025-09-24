@@ -172,7 +172,7 @@ class AmazonParser:
                 downloaded = int(downloaded_pattern.match(product_review).group(1))
                 avg_rating = float(avg_rating_pattern.match(product_review).group(1))
 
-                product.total_downloaded = downloaded
+                product.total = total
                 product.avg_rating = avg_rating
 
                 # print(total)
@@ -181,7 +181,7 @@ class AmazonParser:
 
                 review_line_pattern = re.compile(r"^\s*(\d+-\d+-\d+)\s*cutomer:\s*(\w+)\s*rating:\s*(\d+)\s*votes:\s*(\d+)\s*helpful:\s*(\d+)$")
 
-                for _ in range(total):
+                for _ in range(downloaded):
                     review_line = lines[current_line]
                     current_line += 1
                     # print("-"*30)
