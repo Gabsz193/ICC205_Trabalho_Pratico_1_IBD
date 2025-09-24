@@ -1,7 +1,6 @@
 import re
 
-from schema import Product, Group
-
+from schema import Product, Group, Category
 
 class AmazonParser:
     """
@@ -55,7 +54,7 @@ class AmazonParser:
         return self.file_lines[start_line:current_line], current_line
 
     @staticmethod
-    def parse_data(lines: list[str]):
+    def parse_data(lines: list[str]) -> Product:
         id_pattern = re.compile(r'^Id:\s*(\d+)$')
         asin_pattern = re.compile(r'^ASIN:\s*(\w+)$')
         title_pattern = re.compile(r'^ {2}title:\s*(.+)$')
@@ -119,6 +118,7 @@ class AmazonParser:
                 # de árvores de categoria.
 
                 n = int(product_category)
+                product_categories = []
 
                 while n > 0:
                     category_line = lines[current_line]
@@ -127,8 +127,8 @@ class AmazonParser:
                     categories = [x for x in category_line.strip().split('|') if x]
                     category_inner_pattern = re.compile(r'^(.*)\[(.*)]$')
 
-                    print("-"*30)
-                    print("Linha completa:", category_line.strip())
+                    # print("-"*30)
+                    # print("Linha completa:", category_line.strip())
                     list_categories = []
 
                     for category in categories:
@@ -136,10 +136,22 @@ class AmazonParser:
                         category_id = category_inner_pattern.match(category).group(2)
                         list_categories.append((category_id, category_name))
 
-                    print(list_categories) # Pega essa lista e faz uma árvore
-                    print("-"*30)
+                    # print(list_categories) # Pega essa lista e faz uma árvore
+                    temp = None
+                    primeiro = None
+                    for id_, name in list_categories[::-1]:
+                        cat = Category(name=name, id_category=id_)
+                        if primeiro is None:
+                            primeiro = cat
+                        if temp:
+                            temp.super_category = cat
+                        temp = cat
+
+                    product_categories.append(primeiro)
+                    # print("-"*30)
 
                     n -= 1
+                product.categories = product_categories
                 continue
 
             if match := review_pattern.match(line):
@@ -159,7 +171,7 @@ class AmazonParser:
                 continue
 
         print(product)
-        print(lines)
+        return product
 
 
 parser = AmazonParser("data/amazon-meta.txt")
