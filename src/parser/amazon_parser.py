@@ -229,45 +229,42 @@ class AmazonParser:
 
         return product
 
+    def parse_n_products(self, n: int = 5, offset: int = 0, show_logs: bool = False) -> list[Product]:
+        """
+        Faz o parsing de N produtos do arquivo de dados da Amazon.
 
-def parse_n_products(n: int = 5, offset: int = 0, show_logs: bool = False) -> list[Product]:
-    """
-    Faz o parsing de N produtos do arquivo de dados da Amazon.
+        Args:
+            n (int, optional): Quantidade de produtos para fazer o parsing. Padrão é 5.
+            offset (int, optional): Quantidade de produtos para pular antes de começar o parsing. Padrão é 0.
+            show_logs (bool, optional): Se True, exibe logs durante o processo de parsing. Padrão é False.
 
-    Args:
-        n (int, optional): Quantidade de produtos para fazer o parsing. Padrão é 5.
-        offset (int, optional): Quantidade de produtos para pular antes de começar o parsing. Padrão é 0.
-        show_logs (bool, optional): Se True, exibe logs durante o processo de parsing. Padrão é False.
+        Returns:
+            list[Product]: Lista contendo os N produtos parseados do arquivo.
+        """
 
-    Returns:
-        list[Product]: Lista contendo os N produtos parseados do arquivo.
-    """
+        def print_m(message: str):
+            if show_logs:
+                print(message)
 
-    def print_m(message: str):
-        if show_logs:
-            print(message)
+        cur_line = 3
 
-    parser = AmazonParser("data/amazon-meta.txt")
+        lines, end_line = self.get_data(cur_line)
 
-    cur_line = 3
+        qtd_parsed = 1
 
-    lines, end_line = parser.get_data(cur_line)
+        products = []
 
-    qtd_parsed = 1
-
-    products = []
-
-    for _ in range(n):
-        while offset > 0:
-            offset -= 1
+        for _ in range(n):
+            while offset > 0:
+                offset -= 1
+                cur_line = end_line + 1
+                lines, end_line = self.get_data(cur_line)
+            product = self.parse_data(lines)  # Parsear o produto atual
+            products.append(product)
+            print_m(f"Parsing nº {qtd_parsed}")
+            qtd_parsed += 1
+            print_m("-" * 30)
             cur_line = end_line + 1
-            lines, end_line = parser.get_data(cur_line)
-        product = parser.parse_data(lines)  # Parsear o produto atual
-        products.append(product)
-        print_m(f"Parsing nº {qtd_parsed}")
-        qtd_parsed += 1
-        print_m("-" * 30)
-        cur_line = end_line + 1
-        lines, end_line = parser.get_data(cur_line)
+            lines, end_line = self.get_data(cur_line)
 
-    return products
+        return products
