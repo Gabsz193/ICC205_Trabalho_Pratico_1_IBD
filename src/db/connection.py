@@ -1,6 +1,6 @@
 import psycopg2 as pg
 from psycopg2.pool import SimpleConnectionPool
-from config import Config
+from db.config import Config
 
 _pool = SimpleConnectionPool(
     minconn=1,
@@ -11,7 +11,6 @@ _pool = SimpleConnectionPool(
     port=Config.DB_PORT,
     database=Config.DB_NAME
 )
-
 
 class DatabaseConnection:
     def __enter__(self) -> pg.extensions.connection:
