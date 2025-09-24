@@ -1,6 +1,8 @@
 import re
+from datetime import datetime
 
-from schema import Product, Group, Category
+from schema import Product, Group, Category, Review, Customer, SimilarProduct
+
 
 class AmazonParser:
     """
@@ -98,12 +100,12 @@ class AmazonParser:
 
             if match := sales_rank_pattern.match(line):
                 product_sales_rank = match.group(1)
-                product.salesrank = product_sales_rank
+                product.salesrank = int(product_sales_rank)
                 continue
 
             if match := category_pattern.match(line):
                 product_category = match.group(1)
-                print(f"Product Category: {product_category}")
+                # print(f"Product Category: {product_category}")
                 # Precisar de ajuda com regex, eu uso esse site: https://regexr.com/
                 # Mas talvez o jeito mais fácil seja fazer com IA.
 
@@ -160,19 +162,50 @@ class AmazonParser:
 
                 product_review = match.group(1)
 
-                print(f"Product Review: {product_review}")
+                # print(f"Product Review: {product_review}")
 
                 total_pattern = re.compile(r".*total:\s*(\d*)")
                 downloaded_pattern = re.compile(r".*downloaded:\s*(\d*)")
                 avg_rating_pattern = re.compile(r".*avg rating:\s*(\d*.?\d*)")
 
-                total = total_pattern.match(product_review).group(1)
-                downloaded = downloaded_pattern.match(product_review).group(1)
-                avg_rating = avg_rating_pattern.match(product_review).group(1)
+                total = int(total_pattern.match(product_review).group(1))
+                downloaded = int(downloaded_pattern.match(product_review).group(1))
+                avg_rating = int(avg_rating_pattern.match(product_review).group(1))
 
-                print(int(total))
-                print(int(downloaded))
-                print(float(avg_rating))
+                product.total_downloaded = downloaded
+                product.avg_rating = avg_rating
+
+                # print(total)
+                # print(downloaded)
+                # print(avg_rating)
+
+                review_line_pattern = re.compile(r"^\s*(\d+-\d+-\d+)\s*cutomer:\s*(\w+)\s*rating:\s*(\d+)\s*votes:\s*(\d+)\s*helpful:\s*(\d+)$")
+
+                for _ in range(total):
+                    review_line = lines[current_line]
+                    current_line += 1
+                    # print("-"*30)
+                    # print(review_line)
+
+                    m = review_line_pattern.match(review_line)
+
+                    review_date = datetime.strptime(m.group(1), "%Y-%m-%d")
+                    customer_id = m.group(2)
+                    rating = int(m.group(3))
+                    votes = int(m.group(4))
+                    helpful = int(m.group(5))
+
+                    review = Review(
+                        customer=Customer(id_customer=customer_id),
+                        dt_review=review_date,
+                        rating=rating,
+                        qtd_votes=votes,
+                        qtd_helpful_votes=helpful,
+                    )
+                    # print("-"*30)
+
+
+                    product.reviews.append(review)
 
                 continue
 
@@ -181,10 +214,22 @@ class AmazonParser:
                 # Aqui é só fazer um split e colocar dentro de produto, tbm acho q é simples
 
                 product_similar = match.group(1)
-                print(f"Product Similar: {product_similar}")
+                # print(f"Product Similar: {product_similar}")
+
+                list_similar = re.split(r"\s+", product_similar)
+                list_similar.pop(0)
+
+                # print(list_similar)
+
+                product.similarProducts = list(map(
+                    lambda x: SimilarProduct(id_similar_product=x),
+                    list_similar,
+                ))
+
                 continue
 
-        print(product)
+        # Print in pretty json format
+        print(product.model_dump_json(indent=2))
         return product
 
 

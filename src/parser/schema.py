@@ -31,4 +31,6 @@ class Product(BaseModel):
     categories: list[Category] = []
     similarProducts: list[SimilarProduct] = []
     reviews: list[Review] = []
+    avg_rating: Optional[float] = None
+    total_downloaded: Optional[int] = None
     salesrank: Optional[int] = None
