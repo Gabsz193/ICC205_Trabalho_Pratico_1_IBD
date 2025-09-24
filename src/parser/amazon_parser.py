@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 
-from schema import Product, Group, Category, Review, Customer, SimilarProduct
+from parser.schema import Product, Group, Category, Review, Customer, SimilarProduct
 
 
 class AmazonParser:
@@ -271,7 +271,3 @@ def parse_n_products(n: int = 5, offset: int = 0, show_logs: bool = False) -> li
         lines, end_line = parser.get_data(cur_line)
 
     return products
-
-batch_product = parse_n_products(n=2)
-
-print(batch_product)
