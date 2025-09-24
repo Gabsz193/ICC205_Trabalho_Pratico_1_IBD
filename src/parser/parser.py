@@ -15,7 +15,7 @@ class AmazonParser:
     file_lines: list[str]
     caret_line: int = 0
 
-    def __init__(self, input_filename : str):
+    def __init__(self, input_filename: str):
         try:
             with open(input_filename, "r") as file:
                 # Não demora muito, apesar do documento ter quase 1GB
@@ -30,7 +30,7 @@ class AmazonParser:
 
         return int(total.group())
 
-    def get_data(self, start_line : int) -> tuple[list[str], int]:
+    def get_data(self, start_line: int) -> tuple[list[str], int]:
         """
         Por enquanto, esta função está pegando uma linha do documento e
         verificando se está é o início de um produto via regex, presumindo
@@ -179,7 +179,8 @@ class AmazonParser:
                 # print(downloaded)
                 # print(avg_rating)
 
-                review_line_pattern = re.compile(r"^\s*(\d+-\d+-\d+)\s*cutomer:\s*(\w+)\s*rating:\s*(\d+)\s*votes:\s*(\d+)\s*helpful:\s*(\d+)$")
+                review_line_pattern = re.compile(
+                    r"^\s*(\d+-\d+-\d+)\s*cutomer:\s*(\w+)\s*rating:\s*(\d+)\s*votes:\s*(\d+)\s*helpful:\s*(\d+)$")
 
                 for _ in range(downloaded):
                     review_line = lines[current_line]
@@ -204,13 +205,11 @@ class AmazonParser:
                     )
                     # print("-"*30)
 
-
                     product.reviews.append(review)
 
                 continue
 
             if match := similar_pattern.match(line):
-
                 # Aqui é só fazer um split e colocar dentro de produto, tbm acho q é simples
 
                 product_similar = match.group(1)
@@ -231,7 +230,19 @@ class AmazonParser:
         return product
 
 
-def parse_n_products(n : int = 5, offset : int = 0, show_logs: bool = False) -> list[Product]:
+def parse_n_products(n: int = 5, offset: int = 0, show_logs: bool = False) -> list[Product]:
+    """
+    Faz o parsing de N produtos do arquivo de dados da Amazon.
+
+    Args:
+        n (int, optional): Quantidade de produtos para fazer o parsing. Padrão é 5.
+        offset (int, optional): Quantidade de produtos para pular antes de começar o parsing. Padrão é 0.
+        show_logs (bool, optional): Se True, exibe logs durante o processo de parsing. Padrão é False.
+
+    Returns:
+        list[Product]: Lista contendo os N produtos parseados do arquivo.
+    """
+
     def print_m(message: str):
         if show_logs:
             print(message)
@@ -251,15 +262,16 @@ def parse_n_products(n : int = 5, offset : int = 0, show_logs: bool = False) -> 
             offset -= 1
             cur_line = end_line + 1
             lines, end_line = parser.get_data(cur_line)
-        product = parser.parse_data(lines) # Parsear o produto atual
+        product = parser.parse_data(lines)  # Parsear o produto atual
         products.append(product)
         print_m(f"Parsing nº {qtd_parsed}")
         qtd_parsed += 1
-        print_m("-"*30)
+        print_m("-" * 30)
         cur_line = end_line + 1
         lines, end_line = parser.get_data(cur_line)
 
     return products
+
 
 batch_product = parse_n_products(n=2)
 
