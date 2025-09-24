@@ -170,7 +170,7 @@ class AmazonParser:
 
                 total = int(total_pattern.match(product_review).group(1))
                 downloaded = int(downloaded_pattern.match(product_review).group(1))
-                avg_rating = int(avg_rating_pattern.match(product_review).group(1))
+                avg_rating = float(avg_rating_pattern.match(product_review).group(1))
 
                 product.total_downloaded = downloaded
                 product.avg_rating = avg_rating
