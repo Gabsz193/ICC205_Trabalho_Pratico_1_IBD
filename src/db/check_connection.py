@@ -1,5 +1,4 @@
-from db import DatabaseConnection
-
+from connection import DatabaseConnection
 
 with DatabaseConnection() as conn:
     with conn.cursor() as cursor:

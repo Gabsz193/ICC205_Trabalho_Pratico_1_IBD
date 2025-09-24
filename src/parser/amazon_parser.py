@@ -272,7 +272,6 @@ def parse_n_products(n: int = 5, offset: int = 0, show_logs: bool = False) -> li
 
     return products
 
-
 batch_product = parse_n_products(n=2)
 
 print(batch_product)
