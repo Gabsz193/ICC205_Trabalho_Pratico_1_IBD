@@ -228,15 +228,39 @@ class AmazonParser:
 
                 continue
 
-        # Print in pretty json format
-        print(product.model_dump_json(indent=2))
         return product
 
 
-parser = AmazonParser("data/amazon-meta.txt")
+def parse_n_products(n : int = 5, offset : int = 0, show_logs: bool = False) -> list[Product]:
+    def print_m(message: str):
+        if show_logs:
+            print(message)
 
-cur_line = 7
+    parser = AmazonParser("data/amazon-meta.txt")
 
-lines = parser.get_data(cur_line)[0]
+    cur_line = 3
 
-parser.parse_data(lines)
+    lines, end_line = parser.get_data(cur_line)
+
+    qtd_parsed = 1
+
+    products = []
+
+    for _ in range(n):
+        while offset > 0:
+            offset -= 1
+            cur_line = end_line + 1
+            lines, end_line = parser.get_data(cur_line)
+        product = parser.parse_data(lines) # Parsear o produto atual
+        products.append(product)
+        print_m(f"Parsing nº {qtd_parsed}")
+        qtd_parsed += 1
+        print_m("-"*30)
+        cur_line = end_line + 1
+        lines, end_line = parser.get_data(cur_line)
+
+    return products
+
+batch_product = parse_n_products(n=2)
+
+print(batch_product)
