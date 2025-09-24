@@ -159,7 +159,21 @@ class AmazonParser:
                 # Aqui deve ser ok de fazer, quase a mesma lógica do de cima
 
                 product_review = match.group(1)
+
                 print(f"Product Review: {product_review}")
+
+                total_pattern = re.compile(r".*total:\s*(\d*)")
+                downloaded_pattern = re.compile(r".*downloaded:\s*(\d*)")
+                avg_rating_pattern = re.compile(r".*avg rating:\s*(\d*.?\d*)")
+
+                total = total_pattern.match(product_review).group(1)
+                downloaded = downloaded_pattern.match(product_review).group(1)
+                avg_rating = avg_rating_pattern.match(product_review).group(1)
+
+                print(int(total))
+                print(int(downloaded))
+                print(float(avg_rating))
+
                 continue
 
             if match := similar_pattern.match(line):
