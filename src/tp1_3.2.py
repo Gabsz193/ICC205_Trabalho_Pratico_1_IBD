@@ -3,19 +3,20 @@ from args import *
 
 
 def create_tables(script: str):
-    with DatabaseConnection(
-        DB_HOST,
-        DB_PORT,
-        DB_NAME,
-        DB_USER,
-        DB_PASS
-    ) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(script)
-
-
-
-    pass
+    try:
+        with DatabaseConnection(
+            DB_HOST,
+            DB_PORT,
+            DB_NAME,
+            DB_USER,
+            DB_PASS
+        ) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(script)
+        return 0
+    except Exception as e:
+        print(e)
+        return -1
 
 def main():
     try:
@@ -25,9 +26,7 @@ def main():
         print("Arquivo não encontrado.")
         return -1
 
-    create_tables(script)
-
-    return 0
+    return create_tables(script)
 
 if __name__ == '__main__':
     exit_code = main()
