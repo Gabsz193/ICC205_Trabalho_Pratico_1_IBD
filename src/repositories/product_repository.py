@@ -1,7 +1,7 @@
 from typing import Optional, List
 
 from models.product import Product
-from repositories.base import BaseRepository, T
+from repositories.base import BaseRepository
 
 
 class ProductRepository(BaseRepository[Product]):
