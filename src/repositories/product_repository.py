@@ -58,7 +58,7 @@ class ProductRepository(BaseRepository[Product]):
                 )
                 return cursor.fetchone() is not None
 
-    def find_by_id(self, id_value: str) -> Optional[T]:
+    def find_by_id(self, id_value: str) -> Optional[Product]:
         with self.connection as conn:
             with conn.cursor() as cursor:
                 cursor.execute(
