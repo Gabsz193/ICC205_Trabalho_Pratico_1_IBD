@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Union
 
 from models.similar_products import SimilarProducts
 from repositories.base import BaseRepository
@@ -7,13 +7,38 @@ from repositories.base import BaseRepository
 class SimilarProductsRepository(BaseRepository[SimilarProducts]):
     TABLE_NAME: str = "Similar_Products"
 
-    def save(self, similar: SimilarProducts) -> SimilarProducts:
-        with self.connection as conn:
-            with conn.cursor() as cursor:
-                if self._exists(similar.id_product, similar.id_similar_product):
-                    return self._update(cursor, similar)
-                else:
-                    return self._insert(cursor, similar)
+    def save(self, entitity: Union[SimilarProducts, List[SimilarProducts]]) -> Union[SimilarProducts, List[SimilarProducts]]:
+        if isinstance(entitity, list):
+            with self.connection as conn:
+                with conn.cursor() as cursor:
+                    return self._insert_all(cursor, entitity)
+        else:
+            with self.connection as conn:
+                with conn.cursor() as cursor:
+                    if self._exists(entitity.id_product, entitity.id_similar_product):
+                        return self._update(cursor, entitity)
+                    else:
+                        return self._insert(cursor, entitity)
+
+    def _insert_all(self, cursor, similar: List[SimilarProducts]) -> List[SimilarProducts]:
+        placeholders = ','.join(['(%s, %s, %s)' for _ in similar])
+
+        query = f"""
+                            INSERT INTO {self.TABLE_NAME} (ID_PRODUCT, ID_SIMILAR_PRODUCT, RANK)
+                            VALUES {placeholders}
+                        """
+        params = []
+
+        for p in similar:
+            # garantir a ordem correta dos campos
+            params.extend([
+                p.id_product,
+                p.id_similar_product,
+                p.rank,
+            ])
+        cursor.execute(query, tuple(params))
+
+        return similar
 
     def _insert(self, cursor, similar: SimilarProducts) -> SimilarProducts:
         query = f"""

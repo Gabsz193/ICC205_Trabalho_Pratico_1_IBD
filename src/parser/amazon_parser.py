@@ -56,6 +56,10 @@ class AmazonParser:
         while self.file_lines[current_line].strip() != "":
             current_line += 1
 
+        # (Id:\s*(\d+)\n)(ASIN:\s*(\w+)\n)\s{2}(title:\s*(.+)\n)?\s{2}(group:\s*(\w+)\n)?\s{2}(salesrank:\s*(\d+)\n)?\s{2}(similar:\s*(\d+)\s*(.+)\n)\s{2}(categories:\s*\d+\n)?(\s{3}.+)?\s{2}(reviews:\s*total:\s*(\d+)\s*downloaded:\s*(\d+)\s*avg rating:\s*(\d+))\n(\s{3}.+)
+
+        # (Id:\s*(\d+)\n)(ASIN:\s*(\w+)\n)(\s{2}(title:\s*(.+)\n)?\s{2}(group:\s*(\w+)\n)?\s{2}(salesrank:\s*(\d+)\n)?\s{2}(similar:\s*(\d+)\s*(.*)\n)\s{2}(categories:\s*\d+\n)?(\s{3}.+)?\s{2}(reviews:\s*total:\s*(\d+)\s*downloaded:\s*(\d+)\s*avg rating:\s*(\d+\.?\d*))\n(\s{3}.+))?
+
         return self.file_lines[start_line:current_line], current_line
 
     @staticmethod

@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Union
 
 from models.category import Category
 from repositories.base import BaseRepository
@@ -7,13 +7,55 @@ from repositories.base import BaseRepository
 class CategoryRepository(BaseRepository[Category]):
     TABLE_NAME: str = "Category"
 
-    def save(self, category: Category) -> Category:
-        with self.connection as conn:
-            with conn.cursor() as cursor:
-                if self._exists(category.id_category):
-                    return self._update(cursor, category)
-                else:
-                    return self._insert(cursor, category)
+    def save(self, entity: Union[Category, List[Category]]) -> Union[Category, List[Category]]:
+        if isinstance(entity, list):
+            with self.connection as conn:
+                with conn.cursor() as cursor:
+                    return self._insert_all(cursor, entity)
+        else:
+            with self.connection as conn:
+                with conn.cursor() as cursor:
+                    if self._exists(entity.id_category):
+                        return self._update(cursor, entity)
+                    else:
+                        return self._insert(cursor, entity)
+
+    def _insert_all(self, cursor, categories: List[Category]) -> List[Category]:
+        categories_checkeck = set()
+        unicos = []
+
+        categories = [category.model_dump() for category in categories if category is not None]
+
+        for category in categories:
+            if category['id_category'] not in categories_checkeck:
+                categories_checkeck.add(category['id_category'])
+                unicos.append(category)
+
+        categories = [unico for unico in unicos if not self._exists(unico['id_category'])]
+
+        if not categories:
+            return []
+
+        placeholders = ','.join(['(%s, %s, %s)' for _ in categories])
+
+        query = f"""
+            INSERT INTO {self.TABLE_NAME} (ID_CATEGORY, NAME, ID_SUPER_CATEGORY)
+            VALUES {placeholders}
+        """
+
+
+
+        params = []
+        for p in categories:
+            params.extend([
+                p['id_category'],
+                p['name'],
+                p['id_super_category'],
+            ])
+
+        cursor.execute(query, tuple(params))
+
+        return categories
 
     def _insert(self, cursor, category: Category) -> Category:
         query = f"""

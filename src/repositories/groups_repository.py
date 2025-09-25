@@ -1,4 +1,5 @@
-from typing import Optional, List
+from enum import unique
+from typing import Optional, List, Union
 
 from models.group import Group
 from repositories.base import BaseRepository
@@ -7,13 +8,53 @@ from repositories.base import BaseRepository
 class GroupRepository(BaseRepository[Group]):
     TABLE_NAME: str = "Groups"
 
-    def save(self, group: Group) -> Group:
-        with self.connection as conn:
-            with conn.cursor() as cursor:
-                if self._exists(group.id_group):
-                    return self._update(cursor, group)
-                else:
-                    return self._insert(cursor, group)
+    def save(self, entity: Union[Group, List[Group]]) -> Union[Group, List[Group]]:
+        if isinstance(entity, list):
+            with self.connection as conn:
+                with conn.cursor() as cursor:
+                    return self._insert_all(cursor, entity)
+        else:
+            with self.connection as conn:
+                with conn.cursor() as cursor:
+                    if self._exists(entity.id_product):
+                        return self._update(cursor, entity)
+                    else:
+                        return self._insert(cursor, entity)
+
+    def _insert_all(self, cursor, groups: List[Group]) -> List[Group]:
+
+        groups_checkeck = set()
+        unicos = []
+
+        groups = [group.model_dump() for group in groups if group is not None]
+
+        for group in groups:
+            if group['id_group'] not in groups_checkeck:
+                groups_checkeck.add(group['id_group'])
+                unicos.append(group)
+
+        groups = [unico for unico in unicos if not self._exists(unico['id_group'])]
+
+        if not groups:
+            return []
+
+        placeholders = ','.join(['(%s, %s)' for _ in groups])
+
+        query = f"""
+            INSERT INTO {self.TABLE_NAME} (ID_GROUP, NAME)
+            VALUES {placeholders}
+        """
+        params = []
+
+        for p in groups:
+            # garantir a ordem correta dos campos
+            params.extend([
+                p['id_group'],
+                p['name']
+            ])
+        cursor.execute(query, tuple(params))
+
+        return groups
 
     def _insert(self, cursor, group: Group) -> Group:
         query = f"""
@@ -38,12 +79,12 @@ class GroupRepository(BaseRepository[Group]):
         ))
         return group
 
-    def _exists(self, id_group: str) -> bool:
+    def _exists(self, name: str) -> bool:
         with self.connection as conn:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT ID_GROUP FROM {self.TABLE_NAME} WHERE ID_GROUP = %s",
-                    (id_group,),
+                    f"SELECT NAME FROM {self.TABLE_NAME} WHERE NAME = %s",
+                    (name,),
                 )
                 return cursor.fetchone() is not None
 

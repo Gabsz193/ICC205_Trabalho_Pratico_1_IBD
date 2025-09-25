@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, overload, Union
 
 from models.product import Product
 from repositories.base import BaseRepository
@@ -7,13 +7,42 @@ from repositories.base import BaseRepository
 class ProductRepository(BaseRepository[Product]):
     TABLE_NAME: str = "Product"
 
-    def save(self, product: Product) -> Product:
-        with self.connection as conn:
-            with conn.cursor() as cursor:
-                if self._exists(product.id_product):
-                    return self._update(cursor, product)
-                else:
-                    return self._insert(cursor, product)
+    def save(self, entity: Union[Product, List[Product]]) -> Union[Product, List[Product]]:
+        if isinstance(entity, list):
+            with self.connection as conn:
+                with conn.cursor() as cursor:
+                    return self._insert_all(cursor, entity)
+        else:
+            with self.connection as conn:
+                with conn.cursor() as cursor:
+                    if self._exists(entity.id_product):
+                        return self._update(cursor, entity)
+                    else:
+                        return self._insert(cursor, entity)
+
+    def _insert_all(self, cursor, products: List[Product]) -> List[Product]:
+        placeholders = ','.join(['(%s, %s, %s, %s, %s, %s, %s)' for _ in products])
+
+        query = f"""
+            INSERT INTO {self.TABLE_NAME} (ID_PRODUCT, ASIN, TITLE, ID_GROUP, SALESRANK, TOTAL, AVG_RATING)
+            VALUES {placeholders}
+        """
+        params = []
+
+        for p in products:
+            # garantir a ordem correta dos campos
+            params.extend([
+                p.id_product,
+                p.asin,
+                p.title,
+                p.id_group,
+                p.salesrank,
+                p.total,
+                p.avg_rating,
+            ])
+        cursor.execute(query, tuple(params))
+
+        return products
 
     def _insert(self, cursor, product: Product) -> Product:
         query = f"""

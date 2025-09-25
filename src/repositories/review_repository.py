@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Union
 from datetime import datetime
 
 from models.review import Review
@@ -8,13 +8,42 @@ from repositories.base import BaseRepository
 class ReviewRepository(BaseRepository[Review]):
     TABLE_NAME: str = "Review"
 
-    def save(self, review: Review) -> Review:
-        with self.connection as conn:
-            with conn.cursor() as cursor:
-                if self._exists(review.id_review):
-                    return self._update(cursor, review)
-                else:
-                    return self._insert(cursor, review)
+    def save(self, entity: Union[Review, List[Review]]) -> Union[Review, List[Review]]:
+        if isinstance(entity, list):
+            with self.connection as conn:
+                with conn.cursor() as cursor:
+                    return self._insert_all(cursor, entity)
+        else:
+            with self.connection as conn:
+                with conn.cursor() as cursor:
+                    if self._exists(entity.id_review):
+                        return self._update(cursor, entity)
+                    else:
+                        return self._insert(cursor, entity)
+
+    def _insert_all(self, cursor, reviews: List[Review]) -> List[Review]:
+        placeholders = ','.join(['(%s, %s, %s, %s, %s, %s, %s)' for _ in reviews])
+
+        query = f"""
+                    INSERT INTO {self.TABLE_NAME} (ID_REVIEW, ID_PRODUCT, ID_CUSTOMER, DT_REVIEW, RATING, QTD_VOTES, QTD_HELPFUL_VOTES)
+                    VALUES {placeholders}
+                """
+        params = []
+
+        for p in reviews:
+            # garantir a ordem correta dos campos
+            params.extend([
+                p.id_review,
+                p.id_product,
+                p.id_customer,
+                p.dt_review,
+                p.rating,
+                p.qtd_votes,
+                p.qtd_helpful_votes,
+            ])
+        cursor.execute(query, tuple(params))
+
+        return reviews
 
     def _insert(self, cursor, review: Review) -> Review:
         query = f"""

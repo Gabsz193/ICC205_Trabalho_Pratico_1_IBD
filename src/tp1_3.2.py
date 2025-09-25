@@ -1,4 +1,5 @@
 import uuid
+from itertools import chain
 
 from db.connection import DatabaseConnection
 from args import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS, INPUT
@@ -11,17 +12,31 @@ from models.review import Review as ModelReview
 from models.similar_products import SimilarProducts
 from parser.amazon_parser import AmazonParser
 from parser.schema import Product as ProductParser, Category
+from repositories.category_repository import CategoryRepository
+from repositories.customer_repository import CustomerRepository
+from repositories.groups_repository import GroupRepository
+from repositories.product_repository import ProductRepository
+from repositories.review_repository import ReviewRepository
+from repositories.similar_products_repository import SimilarProductsRepository
 
+databaseConnection = DatabaseConnection(
+    DB_HOST,
+    DB_PORT,
+    DB_NAME,
+    DB_USER,
+    DB_PASS
+)
+
+group_repository = GroupRepository(connection=databaseConnection)
+product_repository = ProductRepository(connection=databaseConnection)
+category_repository = CategoryRepository(connection=databaseConnection)
+customer_repository = CustomerRepository(connection=databaseConnection)
+review_repository = ReviewRepository(connection=databaseConnection)
+similar_products_repository = SimilarProductsRepository(connection=databaseConnection)
 
 def create_tables(script: str):
     try:
-        with DatabaseConnection(
-                DB_HOST,
-                DB_PORT,
-                DB_NAME,
-                DB_USER,
-                DB_PASS
-        ) as conn:
+        with databaseConnection as conn:
             with conn.cursor() as cursor:
                 cursor.execute(script)
         return 0
@@ -31,9 +46,8 @@ def create_tables(script: str):
 
 
 def insert_from_product(product: ProductParser):
-    group_id: str = uuid.uuid4().hex
     group_to_insert: Group = Group(
-        id_group=group_id,
+        id_group=product.group.name,
         name=product.group.name,
     ) if product.group else None
     reviews_to_insert: list[ModelReview] = []
@@ -46,7 +60,7 @@ def insert_from_product(product: ProductParser):
         id_product=product.id_product,
         asin=product.asin,
         title=product.title,
-        id_group=group_id if product.group else None,
+        id_group=product.group.name if product.group else None,
         salesrank=product.salesrank,
         total=product.total,
         avg_rating=product.avg_rating,
@@ -105,7 +119,16 @@ def insert_from_product(product: ProductParser):
             id_super_category=None
         ))
 
-    print("Processou")
+    return {
+        'product': product_to_insert,
+        'group': group_to_insert,
+        'reviews': reviews_to_insert,
+        'customers': customers_to_insert,
+        'categories': categories_to_insert,
+        'product_categories': product_categories_to_insert,
+        'similar_products': similar_products_to_insert
+    }
+
 
     # print(product_to_insert)
     # print(group_to_insert)
@@ -121,7 +144,7 @@ def parse_and_save(filename: str):
 
     qtd_products = amazon_parser.get_count()
     # qtd_products = 15000
-    batch_size = 5000
+    batch_size = 20000
 
     qtd_processed = 0
     last_line = None
@@ -133,8 +156,31 @@ def parse_and_save(filename: str):
             break
         print("Linha a ser pega:", last_line)
         qtd_processed += len(products)
+
+        campos_a_inserir = []
         for product in products:
-            insert_from_product(product)
+            campos_a_inserir.append(insert_from_product(product))
+
+        produtos = list(map(lambda x: x['product'], campos_a_inserir))
+        groups = list(map(lambda x: x['group'], campos_a_inserir))
+        categories = list(map(lambda x: x['categories'], campos_a_inserir))
+        customers = list(map(lambda x: x['customers'], campos_a_inserir))
+        product_categories = list(map(lambda x: x['product_categories'], campos_a_inserir))
+        reviews = list(map(lambda x: x['reviews'], campos_a_inserir))
+        similar_products = list(map(lambda x: x['similar_products'], campos_a_inserir))
+
+
+        categories = list(chain.from_iterable(categories))
+        customers = list(chain.from_iterable(customers))
+        reviews = list(chain.from_iterable(reviews))
+
+        group_repository.save(groups)
+        category_repository.save(categories)
+        customer_repository.save(customers)
+        product_repository.save(produtos)
+        review_repository.save(reviews)
+        # similar_products_repository.save(similar_products)
+
         print("Quantidade de produtos processados:", qtd_processed, "...")
 
     print("Quantidade total:", qtd_processed)

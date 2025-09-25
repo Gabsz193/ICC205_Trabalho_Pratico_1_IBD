@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Union
 
 from models.customer import Customer
 from repositories.base import BaseRepository
@@ -7,13 +7,52 @@ from repositories.base import BaseRepository
 class CustomerRepository(BaseRepository[Customer]):
     TABLE_NAME: str = "Customer"
 
-    def save(self, customer: Customer) -> Customer:
-        with self.connection as conn:
-            with conn.cursor() as cursor:
-                if self._exists(customer.id_customer):
-                    return self._update(cursor, customer)
-                else:
-                    return self._insert(cursor, customer)
+    def save(self, entitity: Union[Customer, List[Customer]]) -> Union[Customer, List[Customer]]:
+        if isinstance(entitity, list):
+            with self.connection as conn:
+                with conn.cursor() as cursor:
+                    return self._insert_all(cursor, entitity)
+        else:
+            with self.connection as conn:
+                with conn.cursor() as cursor:
+                    if self._exists(entitity.id_customer):
+                        return self._update(cursor, entitity)
+                    else:
+                        return self._insert(cursor, entitity)
+
+    def _insert_all(self, cursor, customers: List[Customer]) -> List[Customer]:
+        customers_checkeck = set()
+        unicos = []
+
+        customers = [customer.model_dump() for customer in customers if customer is not None]
+
+        for customer in customers:
+            if customer['id_customer'] not in customers_checkeck:
+                customers_checkeck.add(customer['id_customer'])
+                unicos.append(customer)
+
+        customers = [unico for unico in unicos if not self._exists(unico['id_customer'])]
+
+        if not customers:
+            return []
+
+        placeholders = ','.join(['(%s)' for _ in customers])
+
+        query = f"""
+                    INSERT INTO {self.TABLE_NAME} (ID_CUSTOMER)
+                    VALUES {placeholders}
+                """
+
+        params = []
+        for p in customers:
+            params.extend([
+                p['id_customer'],
+            ])
+
+        cursor.execute(query, tuple(params))
+
+        return customers
+
 
     def _insert(self, cursor, customer: Customer) -> Customer:
         query = f"""
