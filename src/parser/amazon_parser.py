@@ -47,8 +47,11 @@ class AmazonParser:
 
         current_line = start_line
 
-        if not start_pattern.match(self.file_lines[start_line]):
-            raise ValueError("Linha de início inválida")
+        try:
+            if not start_pattern.match(self.file_lines[start_line]):
+                raise ValueError("Linha de início inválida")
+        except IndexError:
+            return [], -1
 
         while self.file_lines[current_line].strip() != "":
             current_line += 1
@@ -229,24 +232,26 @@ class AmazonParser:
 
         return product
 
-    def parse_n_products(self, n: int = 5, offset: int = 0, show_logs: bool = False) -> list[Product]:
+    def parse_n_products(self, n: int = 5, start_from: int = 3, show_logs: bool = False) -> tuple[list[Product], int]:
         """
         Faz o parsing de N produtos do arquivo de dados da Amazon.
 
         Args:
             n (int, optional): Quantidade de produtos para fazer o parsing. Padrão é 5.
-            offset (int, optional): Quantidade de produtos para pular antes de começar o parsing. Padrão é 0.
+            start_from (int, optional): Quantidade de produtos para pular antes de começar o parsing. Padrão é 0.
             show_logs (bool, optional): Se True, exibe logs durante o processo de parsing. Padrão é False.
-
         Returns:
             list[Product]: Lista contendo os N produtos parseados do arquivo.
         """
+
+        if start_from is None:
+            start_from = 3
 
         def print_m(message: str):
             if show_logs:
                 print(message)
 
-        cur_line = 3
+        cur_line = start_from
 
         lines, end_line = self.get_data(cur_line)
 
@@ -255,11 +260,10 @@ class AmazonParser:
         products = []
 
         for _ in range(n):
-            while offset > 0:
-                offset -= 1
-                cur_line = end_line + 1
-                lines, end_line = self.get_data(cur_line)
-            product = self.parse_data(lines)  # Parsear o produto atual
+            if not lines:
+                return products, -1
+
+            product = self.parse_data(lines)
             products.append(product)
             print_m(f"Parsing nº {qtd_parsed}")
             qtd_parsed += 1
@@ -267,4 +271,4 @@ class AmazonParser:
             cur_line = end_line + 1
             lines, end_line = self.get_data(cur_line)
 
-        return products
+        return products, cur_line
