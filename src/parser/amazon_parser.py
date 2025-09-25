@@ -62,6 +62,156 @@ class AmazonParser:
 
         return self.file_lines[start_line:current_line], current_line
 
+    def new_parse_data(self) -> dict:
+
+        super_mega_pattern = re.compile(
+            r'(Id:\s*(\d+)\n)(ASIN:\s*(\w+)\n)(\s{2}(title:\s*(.+)\n)?\s{2}(group:\s*(\w+)\n)?\s{2}(salesrank:\s*(\d+)\n)?\s{2}(similar:\s*(\d+)\s*(.*)\n)\s{2}(categories:\s*\d+\n)?(\s{3}.+)?\s{2}(reviews:\s*total:\s*(\d+)\s*downloaded:\s*(\d+)\s*avg rating:\s*(\d+\.?\d*))\n(\s{3}.+))?',
+            re.DOTALL)
+
+        list_data = {
+            'products': [],
+            'groups': [],
+            'categories': [],
+            'reviews': [],
+            'similar_products': [],
+            'customers': [],
+            'product_categories': [],
+        }
+
+        for block in tqdm(self.total_blocks, desc="Fazendo parsing dos blocos", colour='green'):
+            if match := super_mega_pattern.match(block):
+                id_product = match.group(2)
+                asin_product = match.group(4)
+                title_product = match.group(7)
+                group_product = match.group(9)
+                salesrank_product = match.group(11)
+                similar_products_asin = match.group(14)
+                categories_product = match.group(16)
+                total_product = match.group(18)
+                downloaded_product = match.group(19)
+                avg_rating_product = match.group(20)
+                reviews_product = match.group(21)
+
+                product = Product(
+                    id_product=id_product,
+                    asin=asin_product,
+                    title=title_product,
+                    id_group=group_product,
+                    salesrank=salesrank_product,
+                    total=total_product,
+                    avg_rating=avg_rating_product,
+                )
+
+                group = Group(
+                    id_group=group_product,
+                    name=group_product,
+                ) if group_product else None
+
+                def get_cat_and_id(cat_line: str) -> tuple[str, str]:
+                    cat_pattern = re.compile(r'^(.*)\[(.*)]$')
+                    cat_name = cat_pattern.match(cat_line).group(1)
+                    cat_id = cat_pattern.match(cat_line).group(2)
+                    return cat_name, cat_id
+
+                cat_lines = []
+
+                if categories_product:
+                    cat_lines = categories_product.split('\n')
+                    cat_lines = list(map(lambda x: x.strip(), cat_lines))
+                    cat_lines = list(filter(lambda x: x, cat_lines))
+
+                product_categories = []
+                categories = []
+
+                for line in cat_lines:
+                    cats = line.split('|')
+                    cats = list(filter(lambda x: x, cats))
+                    cats = list(map(get_cat_and_id, cats))
+
+                    product_categories.append(ProductCategory(
+                        id_product_category=uuid.uuid4().hex,
+                        id_product=id_product,
+                        id_category=cats[-1][1]
+                    ))
+
+                    cats.reverse()
+
+                    for i in range(len(cats)):
+                        categories.append(Category(
+                            id_category=cats[i][1],
+                            name=cats[i][0],
+                            id_super_category=cats[i + 1][1] if i + 1 < len(cats) else None
+                        ))
+
+                unique_values = {}
+
+                for cat in categories:
+                    unique_values[cat.id_category] = cat
+
+                categories = list(unique_values.values())
+
+                if reviews_product:
+                    reviews_product = reviews_product.split('\n')
+                    reviews_product = list(filter(lambda x: x, reviews_product))
+                    reviews_product = list(map(lambda x: x.strip(), reviews_product))
+                else:
+                    reviews_product = []
+
+                reviews = []
+                customers = []
+
+                for review in reviews_product:
+                    review_pattern = re.compile(
+                        r'^(\d+-\d+-\d+)\s*cutomer:\s*(\w+)\s*rating:\s*(\d+)\s*votes:\s*(\d+)\s*helpful:\s*(\d+)$')
+                    m = review_pattern.match(review)
+                    review_date = datetime.strptime(m.group(1), "%Y-%m-%d")
+                    customer_id = m.group(2)
+                    rating = int(m.group(3))
+                    votes = int(m.group(4))
+                    helpful = int(m.group(5))
+
+                    customers.append(Customer(id_customer=customer_id))
+
+                    reviews.append(Review(
+                        id_review=uuid.uuid4().hex,
+                        id_product=id_product,
+                        id_customer=customer_id,
+                        dt_review=review_date,
+                        rating=rating,
+                        qtd_votes=votes,
+                        qtd_helpful_votes=helpful,
+                    ))
+
+                similar_products = []
+
+                if similar_products_asin:
+                    similar_products_asin = similar_products_asin.split(' ')
+                    similar_products_asin = list(filter(lambda x: x, similar_products_asin))
+                else:
+                    similar_products_asin = []
+
+                i = 1
+                for sim_prod in similar_products_asin:
+                    similar_products.append(SimilarProducts(
+                        id_product=id_product,
+                        id_similar_product=sim_prod,
+                        rank=i
+                    ))
+                    i+=1
+
+                list_data['products'].append(product)
+                list_data['groups'].append(group) if group else None
+                list_data['categories'].extend(categories)
+                list_data['reviews'].extend(reviews)
+                list_data['similar_products'].extend(similar_products)
+                list_data['customers'].extend(customers)
+                list_data['product_categories'].extend(product_categories)
+            else:
+                print(block)
+                raise Exception("Erro aqui")
+
+        return list_data
+
     @staticmethod
     def parse_data(lines: list[str]) -> Product:
         id_pattern = re.compile(r'^Id:\s*(\d+)$')
