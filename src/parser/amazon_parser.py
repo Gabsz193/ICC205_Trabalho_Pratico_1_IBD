@@ -1,7 +1,17 @@
+import os
 import re
+import uuid
 from datetime import datetime
+from typing import List
+from tqdm import tqdm
 
-from parser.schema import Product, Group, Category, Review, Customer, SimilarProduct
+from parser.category import Category
+from parser.customer import Customer
+from parser.group import Group
+from parser.product import Product
+from parser.product_category import ProductCategory
+from parser.review import Review
+from parser.similar_products import SimilarProducts
 
 
 class AmazonParser:
@@ -13,14 +23,16 @@ class AmazonParser:
     """
 
     file_lines: list[str]
+    file_str: str
     caret_line: int = 0
 
     def __init__(self, input_filename: str):
         try:
             with open(input_filename, "r") as file:
                 # Não demora muito, apesar do documento ter quase 1GB
-
-                self.file_lines = file.readlines()
+                self.total_blocks = file.read().split("\n\n")
+                self.total_blocks.pop(0)
+                self.total_blocks.pop(-1)
         except FileNotFoundError:
             print("Arquivo não encontrado.")
 
@@ -62,7 +74,7 @@ class AmazonParser:
 
         return self.file_lines[start_line:current_line], current_line
 
-    def new_parse_data(self) -> dict:
+    def new_parse_data(self, n: int = None, offset: int = 0) -> dict:
 
         super_mega_pattern = re.compile(
             r'(Id:\s*(\d+)\n)(ASIN:\s*(\w+)\n)(\s{2}(title:\s*(.+)\n)?\s{2}(group:\s*(\w+)\n)?\s{2}(salesrank:\s*(\d+)\n)?\s{2}(similar:\s*(\d+)\s*(.*)\n)\s{2}(categories:\s*\d+\n)?(\s{3}.+)?\s{2}(reviews:\s*total:\s*(\d+)\s*downloaded:\s*(\d+)\s*avg rating:\s*(\d+\.?\d*))\n(\s{3}.+))?',
@@ -76,9 +88,18 @@ class AmazonParser:
             'similar_products': [],
             'customers': [],
             'product_categories': [],
+            'stop': -1,
         }
 
-        for block in tqdm(self.total_blocks, desc="Fazendo parsing dos blocos", colour='green'):
+        # Verificar se offset é válido
+        if offset < 0 or offset >= len(self.total_blocks):
+            return list_data
+
+        # Determinar os blocos a processar
+        end_idx = len(self.total_blocks) if n is None else min(offset + n, len(self.total_blocks))
+        blocks_to_process = self.total_blocks[offset:end_idx]
+
+        for idx, block in enumerate(tqdm(blocks_to_process, desc="Fazendo parsing dos blocos", colour='green')):
             if match := super_mega_pattern.match(block):
                 id_product = match.group(2)
                 asin_product = match.group(4)
@@ -209,6 +230,9 @@ class AmazonParser:
             else:
                 print(block)
                 raise Exception("Erro aqui")
+
+        # Definir o índice onde parou
+        list_data['stop'] = -1 if end_idx >= len(self.total_blocks) else end_idx
 
         return list_data
 
@@ -426,3 +450,14 @@ class AmazonParser:
             lines, end_line = self.get_data(cur_line)
 
         return products, cur_line
+
+
+parser = AmazonParser("../../data/amazon-meta.txt")
+stop = 0
+
+while stop != -1:
+    data = parser.new_parse_data(n=50000, offset=stop)
+    stop = data['stop']
+    print(f"Produtos processados: {len(data['products'])}")
+    print(f"Próximo índice para processar: {data['stop']}")
+
