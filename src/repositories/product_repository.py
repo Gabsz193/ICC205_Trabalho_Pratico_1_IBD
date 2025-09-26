@@ -99,6 +99,18 @@ class ProductRepository(BaseRepository[Product]):
                     return self._map_to_entity(row)
                 return None
 
+    def find_by_asin(self, asin: str) -> Optional[Product]:
+        with self.connection as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT * FROM {self.TABLE_NAME} WHERE ASIN = %s",
+                    (asin,),
+                )
+                row = cursor.fetchone()
+                if row:
+                    return self._map_to_entity(row)
+                return None
+
     def find_all(self) -> List[Product]:
         with self.connection as conn:
             with conn.cursor() as cursor:

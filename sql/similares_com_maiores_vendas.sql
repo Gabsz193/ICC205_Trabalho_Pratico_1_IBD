@@ -8,9 +8,9 @@ SELECT
     p_base.SALESRANK      AS SALESRANK_BASE
 FROM Product p_base
 JOIN Similar_Products sp
-       ON sp.ID_PRODUCT = p_base.ID_PRODUCT
+       ON sp.ID_PRODUCT = p_base.ASIN
 JOIN Product p_sim
-       ON p_sim.ID_PRODUCT = sp.ID_SIMILAR_PRODUCT
-WHERE p_base.ID_PRODUCT = :id_produto
+       ON p_sim.ASIN = sp.ID_SIMILAR_PRODUCT
+WHERE p_base.ASIN = :asin_produto
   AND p_sim.SALESRANK < p_base.SALESRANK
 ORDER BY p_sim.SALESRANK ASC;

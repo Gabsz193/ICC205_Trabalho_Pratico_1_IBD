@@ -214,7 +214,7 @@ class AmazonParser:
                 i = 1
                 for sim_prod in similar_products_asin:
                     similar_products.append(SimilarProducts(
-                        id_product=id_product,
+                        id_product=asin_product,
                         id_similar_product=sim_prod,
                         rank=i
                     ))

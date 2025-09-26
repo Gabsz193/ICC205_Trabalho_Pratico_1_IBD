@@ -5,6 +5,7 @@ SELECT
     AVG(r.RATING)            AS media_avaliacao,
     COUNT(*)                 AS total_reviews
 FROM Review r
-WHERE r.ID_PRODUCT = :id_produto
+INNER JOIN Product p ON p.ID_PRODUCT = r.ID_PRODUCT
+WHERE p.ASIN = :asin_produto
 GROUP BY r.DT_REVIEW::date
 ORDER BY dia;

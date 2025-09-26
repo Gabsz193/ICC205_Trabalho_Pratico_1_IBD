@@ -24,9 +24,15 @@ class SimilarProductsRepository(BaseRepository[SimilarProducts]):
         placeholders = ','.join(['(%s, %s, %s)' for _ in similar])
 
         query = f"""
-                            INSERT INTO {self.TABLE_NAME} (ID_PRODUCT, ID_SIMILAR_PRODUCT, RANK)
-                            VALUES {placeholders}
-                        """
+                    INSERT INTO {self.TABLE_NAME} (ID_PRODUCT, ID_SIMILAR_PRODUCT, RANK)
+                    SELECT
+                        T1.id_product,
+                        T1.id_similar_product,
+                        T1.rank
+                    FROM (VALUES {placeholders}) AS T1 (id_product, id_similar_product, rank)
+                    JOIN product AS T2 ON T1.id_similar_product = T2.asin
+                    ON CONFLICT (ID_PRODUCT, ID_SIMILAR_PRODUCT) DO NOTHING
+                """
         params = []
 
         for p in similar:
@@ -39,6 +45,39 @@ class SimilarProductsRepository(BaseRepository[SimilarProducts]):
         cursor.execute(query, tuple(params))
 
         return similar
+    def save(self, entity: Union[SimilarProducts, List[SimilarProducts]]) -> Union[SimilarProducts, List[SimilarProducts]]:
+        if isinstance(entity, list):
+            with self.connection as conn:
+                with conn.cursor() as cursor:
+                    return self._insert_all(cursor, entity)
+        else:
+            with self.connection as conn:
+                with conn.cursor() as cursor:
+                    if self._exists(entity.id_product, entity.id_similar_product):
+                        return self._update(cursor, entity)
+                    else:
+                        return self._insert(cursor, entity)
+
+    def _insert_all(self, cursor, similars: List[SimilarProducts]) -> List[SimilarProducts]:
+        placeholders = ','.join(['(%s, %s, %s)' for _ in similars])
+
+        query = f"""
+            INSERT INTO {self.TABLE_NAME} (ID_PRODUCT, ID_SIMILAR_PRODUCT, RANK)
+            VALUES {placeholders}
+            ON CONFLICT (ID_PRODUCT, ID_SIMILAR_PRODUCT) DO NOTHING
+        """
+
+        params = []
+        for p in similars:
+            params.extend([
+                p.id_product,
+                p.id_similar_product,
+                p.rank,
+            ])
+
+        cursor.execute(query, tuple(params))
+
+        return similars
 
     def _insert(self, cursor, similar: SimilarProducts) -> SimilarProducts:
         query = f"""

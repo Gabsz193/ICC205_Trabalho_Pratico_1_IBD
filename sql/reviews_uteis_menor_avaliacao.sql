@@ -8,7 +8,8 @@ SELECT
     r.QTD_VOTES,
     r.DT_REVIEW
 FROM Review r
-WHERE r.ID_PRODUCT = :id_produto
+INNER JOIN Product p ON p.ID_PRODUCT = r.ID_PRODUCT
+WHERE p.ASIN = :asin_produto
 ORDER BY r.RATING ASC,
          r.QTD_HELPFUL_VOTES DESC,
          r.QTD_VOTES DESC

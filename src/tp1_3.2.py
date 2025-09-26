@@ -196,8 +196,13 @@ def parse_and_save(filename: str):
         review_repository.save(reviews)
         product_category_repository.save(product_categories)
 
+    news = []
 
-    similar_products_repository.save(save_similar_after)
+    for similar in save_similar_after:
+        if product_repository.find_by_asin(similar.id_similar_product):
+            news.append(similar)
+
+    similar_products_repository.save(news)
 
 
 
