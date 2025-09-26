@@ -1,14 +1,14 @@
 # ICC205_Trabalho_Pratico_1_IBD
 
 # Objetivo
-Objetivo deste trabalho prático é projetar e implementar um banco de dados sobre produtos vendidos em uma loja de comércio eletrônico, incluindo avaliações e comentários de usuários sobre estes produtos.
+Objetivo deste trabalho prático é projetar e implementar um banco de dados sobre produtos vendidos em uma loja de comércio eletrônico, incluindo avaliações e comentários de usuários sobre estes produtos. 
 
 # Requisitos Iniciais
 - docker-compose
 - python
 
 # Como rodar
-1. Preencha as variáveis de ambiente em `.env` como especificado em `.env.example`
+1. Preencha as variáveis de ambiente em `.env` como especificado em `.env.example`. Ou então, rode o comando do docker compose especificando as variáveis de ambiente.
 2. Execute o comando:
    ```
    docker compose up

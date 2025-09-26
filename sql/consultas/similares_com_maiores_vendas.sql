@@ -11,6 +11,6 @@ JOIN Similar_Products sp
        ON sp.ID_PRODUCT = p_base.ASIN
 JOIN Product p_sim
        ON p_sim.ASIN = sp.ID_SIMILAR_PRODUCT
-WHERE p_base.ASIN = :asin_produto
+WHERE p_base.ASIN = :asin_product
   AND p_sim.SALESRANK < p_base.SALESRANK
 ORDER BY p_sim.SALESRANK ASC;

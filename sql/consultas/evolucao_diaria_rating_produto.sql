@@ -6,6 +6,6 @@ SELECT
     COUNT(*)                 AS total_reviews
 FROM Review r
 INNER JOIN Product p ON p.ID_PRODUCT = r.ID_PRODUCT
-WHERE p.ASIN = :asin_produto
+WHERE p.ASIN = :asin_product
 GROUP BY r.DT_REVIEW::date
 ORDER BY dia;

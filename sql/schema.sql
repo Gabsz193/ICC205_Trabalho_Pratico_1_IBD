@@ -61,3 +61,25 @@ CREATE TABLE Review (
     FOREIGN KEY (ID_PRODUCT) REFERENCES Product(ID_PRODUCT),
     FOREIGN KEY (ID_CUSTOMER) REFERENCES Customer(ID_CUSTOMER)
 );
+
+DROP VIEW IF EXISTS Product_Discontinued;
+CREATE VIEW Product_Discontinued AS
+    SELECT
+        ID_PRODUCT,
+        ASIN,
+        'Product Discontinued' AS SITUACAO
+    FROM Product WHERE TITLE IS NULL;
+
+DROP VIEW IF EXISTS Product_Metrics;
+CREATE VIEW Product_Metrics AS
+    SELECT
+        t1.ID_PRODUCT,
+        t1.ASIN,
+        COUNT(t2.ID_REVIEW) AS DOWNLOADED,
+        COUNT(t3.ID_CATEGORY) AS QTD_CATEGORIES
+    FROM Product t1
+    INNER JOIN Review t2 ON t1.ID_PRODUCT = t2.ID_PRODUCT
+    INNER JOIN Product_Category t3 ON t1.ID_PRODUCT = t3.ID_PRODUCT
+    GROUP BY t1.id_product, t1.ASIN;
+
+SELECT * FROM Product_Metrics;

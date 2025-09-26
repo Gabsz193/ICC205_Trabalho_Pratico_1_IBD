@@ -9,7 +9,7 @@ SELECT
     r.DT_REVIEW
 FROM Review r
 INNER JOIN Product p ON p.ID_PRODUCT = r.ID_PRODUCT
-WHERE p.ASIN = :asin_produto
+WHERE p.ASIN = :asin_product
 ORDER BY r.RATING ASC,
          r.QTD_HELPFUL_VOTES DESC,
          r.QTD_VOTES DESC
