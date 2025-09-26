@@ -450,14 +450,3 @@ class AmazonParser:
             lines, end_line = self.get_data(cur_line)
 
         return products, cur_line
-
-
-parser = AmazonParser("../../data/amazon-meta.txt")
-stop = 0
-
-while stop != -1:
-    data = parser.new_parse_data(n=50000, offset=stop)
-    stop = data['stop']
-    print(f"Produtos processados: {len(data['products'])}")
-    print(f"Próximo índice para processar: {data['stop']}")
-

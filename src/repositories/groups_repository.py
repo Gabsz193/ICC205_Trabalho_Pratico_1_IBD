@@ -22,35 +22,24 @@ class GroupRepository(BaseRepository[Group]):
                         return self._insert(cursor, entity)
 
     def _insert_all(self, cursor, groups: List[Group]) -> List[Group]:
-
-        groups_checkeck = set()
-        unicos = []
-
-        groups = [group.model_dump() for group in groups if group is not None]
-
-        for group in groups:
-            if group['id_group'] not in groups_checkeck:
-                groups_checkeck.add(group['id_group'])
-                unicos.append(group)
-
-        groups = [unico for unico in unicos if not self._exists(unico['id_group'])]
+        placeholders = ','.join(['(%s, %s)' for _ in groups])
 
         if not groups:
             return []
 
-        placeholders = ','.join(['(%s, %s)' for _ in groups])
-
         query = f"""
             INSERT INTO {self.TABLE_NAME} (ID_GROUP, NAME)
             VALUES {placeholders}
+            ON CONFLICT (ID_GROUP) DO NOTHING
         """
+
         params = []
 
         for p in groups:
             # garantir a ordem correta dos campos
             params.extend([
-                p['id_group'],
-                p['name']
+                p.id_group,
+                p.name
             ])
         cursor.execute(query, tuple(params))
 
@@ -60,6 +49,7 @@ class GroupRepository(BaseRepository[Group]):
         query = f"""
             INSERT INTO {self.TABLE_NAME} (ID_GROUP, NAME)
             VALUES (%s, %s)
+            ON CONFLICT (id_group) DO NOTHING 
         """
         cursor.execute(query, (
             group.id_group,

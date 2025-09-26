@@ -1,5 +1,4 @@
 import uuid
-from itertools import chain
 
 from db.connection import DatabaseConnection
 from args import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS, INPUT
@@ -15,6 +14,7 @@ from parser.schema import Product as ProductParser, Category
 from repositories.category_repository import CategoryRepository
 from repositories.customer_repository import CustomerRepository
 from repositories.groups_repository import GroupRepository
+from repositories.product_category_repository import ProductCategoryRepository
 from repositories.product_repository import ProductRepository
 from repositories.review_repository import ReviewRepository
 from repositories.similar_products_repository import SimilarProductsRepository
@@ -33,6 +33,7 @@ category_repository = CategoryRepository(connection=databaseConnection)
 customer_repository = CustomerRepository(connection=databaseConnection)
 review_repository = ReviewRepository(connection=databaseConnection)
 similar_products_repository = SimilarProductsRepository(connection=databaseConnection)
+product_category_repository = ProductCategoryRepository(connection=databaseConnection)
 
 def create_tables(script: str):
     try:
@@ -140,50 +141,105 @@ def insert_from_product(product: ProductParser):
 
 
 def parse_and_save(filename: str):
-    amazon_parser = AmazonParser(filename)
+    parser = AmazonParser(filename)
+    stop = 0
+    batch_size = 10000
 
-    qtd_products = amazon_parser.get_count()
-    # qtd_products = 15000
-    batch_size = 20000
+    grupo_existe = {}
+    categoria_existe = {}
 
-    qtd_processed = 0
-    last_line = None
+    save_similar_after = []
 
-    for i in range(0, qtd_products, batch_size):
-        products, last_line = amazon_parser.parse_n_products(batch_size, last_line)
-        if last_line == -1:
-            qtd_processed += len(products)
-            break
-        print("Linha a ser pega:", last_line)
-        qtd_processed += len(products)
+    while stop != -1:
+        data = parser.new_parse_data(n=batch_size, offset=stop)
+        stop = data['stop']
 
-        campos_a_inserir = []
-        for product in products:
-            campos_a_inserir.append(insert_from_product(product))
+        produtos = data['products']
+        groups = data['groups']
 
-        produtos = list(map(lambda x: x['product'], campos_a_inserir))
-        groups = list(map(lambda x: x['group'], campos_a_inserir))
-        categories = list(map(lambda x: x['categories'], campos_a_inserir))
-        customers = list(map(lambda x: x['customers'], campos_a_inserir))
-        product_categories = list(map(lambda x: x['product_categories'], campos_a_inserir))
-        reviews = list(map(lambda x: x['reviews'], campos_a_inserir))
-        similar_products = list(map(lambda x: x['similar_products'], campos_a_inserir))
+        new_groups = []
+        new_categories = []
 
 
-        categories = list(chain.from_iterable(categories))
-        customers = list(chain.from_iterable(customers))
-        reviews = list(chain.from_iterable(reviews))
+        for group in groups:
+            if group.name not in grupo_existe:
+                if not group_repository.find_by_id(group.id_group):
+                    new_groups.append(group)
+                    grupo_existe[group.name] = True
+            else:
+                continue
+
+        groups = new_groups
+
+        categories = data['categories']
+
+        for categorie in categories:
+            if categorie.id_category not in categoria_existe:
+                if not category_repository.find_by_id(categorie.id_category):
+                    new_categories.append(categorie)
+                    categoria_existe[categorie.id_category] = True
+            else:
+                continue
+
+        categories = new_categories
+
+        customers = data['customers']
+        product_categories = data['product_categories']
+        reviews = data['reviews']
+        similar_products = data['similar_products']
+        save_similar_after.extend(similar_products)
 
         group_repository.save(groups)
         category_repository.save(categories)
         customer_repository.save(customers)
         product_repository.save(produtos)
         review_repository.save(reviews)
+        product_category_repository.save(product_categories)
+
+
+    similar_products_repository.save(save_similar_after)
+
+
+
+
+    # qtd_processed = 0
+    # last_line = None
+    #
+    # for i in range(0, qtd_products, batch_size):
+    #     products, last_line = amazon_parser.parse_n_products(batch_size, last_line)
+    #     if last_line == -1:
+    #         qtd_processed += len(products)
+    #         break
+    #     print("Linha a ser pega:", last_line)
+    #     qtd_processed += len(products)
+    #
+    #     campos_a_inserir = []
+    #     for product in products:
+    #         campos_a_inserir.append(insert_from_product(product))
+    #
+    #     produtos = list(map(lambda x: x['product'], campos_a_inserir))
+    #     groups = list(map(lambda x: x['group'], campos_a_inserir))
+    #     categories = list(map(lambda x: x['categories'], campos_a_inserir))
+    #     customers = list(map(lambda x: x['customers'], campos_a_inserir))
+    #     product_categories = list(map(lambda x: x['product_categories'], campos_a_inserir))
+    #     reviews = list(map(lambda x: x['reviews'], campos_a_inserir))
+    #     similar_products = list(map(lambda x: x['similar_products'], campos_a_inserir))
+    #
+    #
+    #     categories = list(chain.from_iterable(categories))
+    #     customers = list(chain.from_iterable(customers))
+    #     reviews = list(chain.from_iterable(reviews))
+    #
+    #     group_repository.save(groups)
+    #     category_repository.save(categories)
+    #     customer_repository.save(customers)
+    #     product_repository.save(produtos)
+    #     review_repository.save(reviews)
         # similar_products_repository.save(similar_products)
 
-        print("Quantidade de produtos processados:", qtd_processed, "...")
+        # print("Quantidade de produtos processados:", qtd_processed, "...")
 
-    print("Quantidade total:", qtd_processed)
+    # print("Quantidade total:", qtd_processed)
 
 
 def main():

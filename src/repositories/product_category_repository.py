@@ -1,13 +1,13 @@
 from typing import Optional, List, Union
 
-from models.category import Category
+from models.product_category import ProductCategory
 from repositories.base import BaseRepository
 
 
-class CategoryRepository(BaseRepository[Category]):
-    TABLE_NAME: str = "Category"
+class ProductCategoryRepository(BaseRepository[ProductCategory]):
+    TABLE_NAME: str = "Product_Category"
 
-    def save(self, entity: Union[Category, List[Category]]) -> Union[Category, List[Category]]:
+    def save(self, entity: Union[ProductCategory, List[ProductCategory]]) -> Union[ProductCategory, List[ProductCategory]]:
         if isinstance(entity, list):
             with self.connection as conn:
                 with conn.cursor() as cursor:
@@ -15,73 +15,71 @@ class CategoryRepository(BaseRepository[Category]):
         else:
             with self.connection as conn:
                 with conn.cursor() as cursor:
-                    if self._exists(entity.id_category):
+                    if self._exists(entity.id_product_category):
                         return self._update(cursor, entity)
                     else:
                         return self._insert(cursor, entity)
 
-    def _insert_all(self, cursor, categories: List[Category]) -> List[Category]:
+    def _insert_all(self, cursor, categories: List[ProductCategory]) -> List[ProductCategory]:
         placeholders = ','.join(['(%s, %s, %s)' for _ in categories])
 
         query = f"""
-            INSERT INTO {self.TABLE_NAME} (ID_CATEGORY, NAME, ID_SUPER_CATEGORY)
+            INSERT INTO {self.TABLE_NAME} (ID_PRODUCT_CATEGORY, ID_PRODUCT, ID_CATEGORY)
             VALUES {placeholders}
-            ON CONFLICT (ID_CATEGORY) DO NOTHING 
+            ON CONFLICT (ID_PRODUCT_CATEGORY) DO NOTHING 
         """
-
-
 
         params = []
         for p in categories:
             params.extend([
+                p.id_product_category,
+                p.id_product,
                 p.id_category,
-                p.name,
-                p.id_super_category,
             ])
 
         cursor.execute(query, tuple(params))
 
         return categories
 
-    def _insert(self, cursor, category: Category) -> Category:
+    def _insert(self, cursor, category: ProductCategory) -> ProductCategory:
         query = f"""
-            INSERT INTO {self.TABLE_NAME} (ID_CATEGORY, NAME, ID_SUPER_CATEGORY)
+            INSERT INTO {self.TABLE_NAME} (ID_PRODUCT_CATEGORY, ID_PRODUCT, ID_CATEGORY)
             VALUES (%s, %s, %s)
         """
         cursor.execute(query, (
+            category.id_product_category,
+            category.id_product,
             category.id_category,
-            category.name,
-            category.id_super_category,
         ))
         return category
 
-    def _update(self, cursor, category: Category) -> Category:
+    def _update(self, cursor, category: ProductCategory) -> ProductCategory:
         query = f"""
             UPDATE {self.TABLE_NAME}
-            SET NAME = %s, ID_SUPER_CATEGORY = %s
-            WHERE ID_CATEGORY = %s;
+            SET ID_PRODUCT = %s, ID_CATEGORY = %s
+            WHERE ID_PRODUCT_CATEGORY = %s;
         """
         cursor.execute(query, (
-            category.name,
-            category.id_super_category,
+            category.id_product,
             category.id_category,
+            category.id_product_category,
         ))
         return category
 
-    def _exists(self, id_category: str) -> bool:
+    def _exists(self, id_product_category: str) -> bool:
         with self.connection as conn:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT ID_CATEGORY FROM {self.TABLE_NAME} WHERE ID_CATEGORY = %s",
-                    (id_category,),
+                    f"SELECT ID_PRODUCT_CATEGORY FROM {self.TABLE_NAME} WHERE ID_PRODUCT_CATEGORY = %s",
+                    (id_product_category,),
                 )
                 return cursor.fetchone() is not None
 
-    def find_by_id(self, id_value: str) -> Optional[Category]:
+    def find_by_id(self, id_value: str) -> Optional[ProductCategory]:
         with self.connection as conn:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT * FROM {self.TABLE_NAME} WHERE ID_CATEGORY = %s",
+                    f"SELECT * FROM {self.TABLE_NAME} WHERE ID_PRODUCT_CATEGORY = %s",
                     (id_value,),
                 )
                 row = cursor.fetchone()
@@ -89,7 +87,7 @@ class CategoryRepository(BaseRepository[Category]):
                     return self._map_to_entity(row)
                 return None
 
-    def find_all(self) -> List[Category]:
+    def find_all(self) -> List[ProductCategory]:
         with self.connection as conn:
             with conn.cursor() as cursor:
                 cursor.execute(f"SELECT * FROM {self.TABLE_NAME}")
@@ -99,14 +97,14 @@ class CategoryRepository(BaseRepository[Category]):
         with self.connection as conn:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    f"DELETE FROM {self.TABLE_NAME} WHERE ID_CATEGORY = %s",
+                    f"DELETE FROM {self.TABLE_NAME} WHERE ID_PRODUCT_CATEGORY = %s",
                     (id_value,),
                 )
                 return cursor.rowcount > 0
 
-    def _map_to_entity(self, row) -> Category:
-        return Category(
-            id_category=row[0],
-            name=row[1],
-            id_super_category=row[2],
+    def _map_to_entity(self, row) -> ProductCategory:
+        return ProductCategory(
+            id_product_category=row[0],
+            id_product=row[1],
+            id_category=row[2],
         )

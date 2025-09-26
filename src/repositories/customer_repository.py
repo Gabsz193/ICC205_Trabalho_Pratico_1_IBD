@@ -21,32 +21,18 @@ class CustomerRepository(BaseRepository[Customer]):
                         return self._insert(cursor, entitity)
 
     def _insert_all(self, cursor, customers: List[Customer]) -> List[Customer]:
-        customers_checkeck = set()
-        unicos = []
-
-        customers = [customer.model_dump() for customer in customers if customer is not None]
-
-        for customer in customers:
-            if customer['id_customer'] not in customers_checkeck:
-                customers_checkeck.add(customer['id_customer'])
-                unicos.append(customer)
-
-        customers = [unico for unico in unicos if not self._exists(unico['id_customer'])]
-
-        if not customers:
-            return []
-
         placeholders = ','.join(['(%s)' for _ in customers])
 
         query = f"""
                     INSERT INTO {self.TABLE_NAME} (ID_CUSTOMER)
                     VALUES {placeholders}
+                    ON CONFLICT (ID_CUSTOMER) DO NOTHING 
                 """
 
         params = []
         for p in customers:
             params.extend([
-                p['id_customer'],
+                p.id_customer,
             ])
 
         cursor.execute(query, tuple(params))
