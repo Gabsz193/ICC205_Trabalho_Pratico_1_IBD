@@ -81,5 +81,3 @@ CREATE VIEW Product_Metrics AS
     INNER JOIN Review t2 ON t1.ID_PRODUCT = t2.ID_PRODUCT
     INNER JOIN Product_Category t3 ON t1.ID_PRODUCT = t3.ID_PRODUCT
     GROUP BY t1.id_product, t1.ASIN;
-
-SELECT * FROM Product_Metrics;
